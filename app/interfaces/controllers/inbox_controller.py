@@ -7,7 +7,7 @@ router = APIRouter()
 use_case = InboxUseCase(FirebaseRepository())
 
 @router.get("/api/inbox", response_model=InboxResponse)
-def get_inboxes(user_id: str, page: int = Query(1), limit: int = Query(10)):
+def get_inboxes(user_id: str = Query(...), page: int = Query(1), limit: int = Query(10)):
     return use_case.get_inboxes(user_id, page, limit)
 
 @router.patch("/api/inbox/{content_id}/send_to_recognition")
