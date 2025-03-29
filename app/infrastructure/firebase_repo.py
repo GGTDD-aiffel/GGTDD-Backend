@@ -105,3 +105,13 @@ class FirebaseRepository:
         except Exception as e:
             print(f"직업명 조회 중 오류 발생: {e}")
             return "Unknown"
+        
+    # tags
+    def get_user_tags_by_type(self, user_id: str, type: str) -> list:
+        from firebase_admin import firestore
+        
+        tags_query = (self.db.collection('user_tags')
+                     .where(filter=firestore.FieldFilter('user_id', '==', user_id))
+                     .where(filter=firestore.FieldFilter('type', '==', type)))
+        tags_docs = tags_query.get()
+        return [doc.to_dict() for doc in tags_docs]
