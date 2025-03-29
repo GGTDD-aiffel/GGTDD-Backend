@@ -2,7 +2,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from google.type import datetime_pb2
 
-# firebase_admin.initialize_app(credentials.Certificate('/app/env/firebase/serviceAccountKey.json'))
+firebase_admin.initialize_app(credentials.Certificate('firebase/serviceAccountKey.json'))
 
 # Cloud Run에서 마운트된 파일 경로 사용
 # FIRESTORE_KEY_PATH = "/secrets/serviceAccountKey.json"
@@ -86,3 +86,22 @@ class FirebaseRepository:
                 .limit(limit)
                 .offset((page - 1) * limit))
         return [doc.to_dict() for doc in query.get()]
+    
+    # user
+    def get_user(self, user_id: str) -> dict:
+        user = self.db.collection('users').document(user_id).get()
+        return user.to_dict() if user.exists else None
+
+    # occupations
+    def get_occupation_name(self, occupation_id: str) -> str:
+        if not occupation_id:
+            return "Unknown"
+        
+        try:
+            doc = self.db.collection('occupations').document(occupation_id).get()
+            if doc.exists:
+                return doc.to_dict().get('occupation_name', "Unknown")
+            return "Unknown"
+        except Exception as e:
+            print(f"직업명 조회 중 오류 발생: {e}")
+            return "Unknown"
