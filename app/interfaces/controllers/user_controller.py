@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from langchain_openai import ChatOpenAI
 
 from app.infrastructure.firebase_repo import FirebaseRepository
-from app.infrastructure.LLMs.UserGenerator import UserGenerator
+from app.infrastructure.LLMs.user_generator import UserGenerator
 from app.domain.user.use_cases import UserUseCase
 from app.domain.user.models import User
 

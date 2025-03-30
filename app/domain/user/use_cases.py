@@ -1,7 +1,7 @@
 from app.domain.user.models import User
 from app.infrastructure.firebase_repo import FirebaseRepository
 from app.infrastructure.firebase_utils import convert_firebase_timestamp, convert_firebase_MBTI
-from app.infrastructure.LLMs.UserGenerator import UserGenerator
+from app.infrastructure.LLMs.user_generator import UserGenerator
 
 class UserUseCase:
     def __init__(self, repo: FirebaseRepository, llm_service: UserGenerator):

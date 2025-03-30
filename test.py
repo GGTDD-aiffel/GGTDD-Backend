@@ -1,40 +1,19 @@
 from langchain_openai import ChatOpenAI
-# from app.infrastructure.LLMs import SceneGenerator, TaskGenerator, TaskCommenter
-from app.infrastructure.LLMs.UserGenerator import UserGenerator
+from app.infrastructure.LLMs.user_generator import UserGenerator
 from app.infrastructure.performance import PerformanceTracker
 from app.infrastructure.firebase_repo import FirebaseRepository
 from app.domain.user.use_cases import UserUseCase
 
-# scene_generator = SceneGenerator(llm=ChatOpenAI(model_name="gpt-4o-mini", temperature=0.5))
-# task_generator = TaskGenerator(llm=ChatOpenAI(model_name="gpt-4o-mini", temperature=0.5))
-# task_commenter = TaskCommenter(llm=ChatOpenAI(model_name="gpt-4o-mini", temperature=0.5))
 tracker = PerformanceTracker()
 fbr = FirebaseRepository()
 userGenerator = UserGenerator(ChatOpenAI(model_name="gpt-4o-mini", temperature=0.5))
 userUseCase = UserUseCase(fbr, userGenerator)
 
 user = userUseCase.create_user('wmnNRPATx5y8p5mp2rca')
-user.generate_prompts(userGenerator)
+userUseCase.update_tags(user)
+userGenerator.generate_prompts(user)
 
-print(user)
-print(user.metadata_str)
-
-# scenes = scene_generator.process(user=user,
-#                                  timeout=15,
-#                                  scenes=["출퇴근길",
-#                                          "근무",
-#                                          "휴식",
-#                                          "공부",
-#                                          "게임",
-#                                          "유튜브 시청",
-#                                          "애완동물 돌보기"])
-# user.append_scenes(scenes)
-# user.collect_tags()
-
-# responses = tracker.measure(user.generate_prompt, timeout=60)
-
-# for i, response in enumerate(responses):
-#     print(f"{i}: {response}")
+print(user.bio_str)
 
 # prompt_index = input("프롬프트 중 선택할 인덱스를 입력하세요: ")
 # user.set_prompt(responses=responses, index=int(prompt_index))

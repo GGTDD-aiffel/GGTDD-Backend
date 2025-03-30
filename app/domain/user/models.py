@@ -1,8 +1,5 @@
 from pydantic import BaseModel
 
-class UserPromptsTemplate(BaseModel):
-    prompt: list[str] = []
-
 class User:
     def __init__(self, name, uid, status, is_admin, email, residence, birth_date, occupation, personality):
         self.name = name

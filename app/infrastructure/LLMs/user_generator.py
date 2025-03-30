@@ -3,7 +3,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 
-from app.infrastructure.LLMs.base_LLM_processor import BaseLLMProcessor
+from app.infrastructure.LLMs.base_LLM_processoor import BaseLLMProcessor
 from app.domain.user.models import User
 
 class UserGenerator(BaseLLMProcessor):

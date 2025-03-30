@@ -31,28 +31,7 @@ class BaseLLMProcessor:
         Returns:
             ChatPromptTemplate: 현재 설정으로 생성된 프롬프트 템플릿
         """
-        template_str = f"{self.prompt_main}\n{self.prompt_kwargs}"
-        return ChatPromptTemplate.from_template(template_str)
-    
-    def set_main_prompt(self, prompt: str) -> None:
-        """
-        메인 프롬프트를 설정합니다.
-        
-        Args:
-            prompt (str): 메인 프롬프트
-        """
-        self.prompt_main = prompt
-        self._prompt_template = self._create_prompt_template()
-    
-    def set_context_prompt(self, prompt_context: str) -> None:
-        """
-        컨텍스트 프롬프트를 설정합니다.
-        
-        Args:
-            prompt_context (str): 컨텍스트 프롬프트
-        """
-        self.prompt_kwargs = prompt_context
-        self._prompt_template = self._create_prompt_template()
+        raise NotImplementedError("프롬프트 템플릿 생성 메서드가 구현되지 않았습니다.")
         
     def process(self, processor_func=None, timeout: Optional[float] = None, **kwargs) -> Any:
         """
