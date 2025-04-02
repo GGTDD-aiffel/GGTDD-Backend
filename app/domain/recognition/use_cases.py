@@ -1,18 +1,9 @@
 from app.infrastructure.LLMs.recognition_generator import RecognitionGenerator
 from app.infrastructure.firebase_repo import FirebaseRepository
+from app.domain.recognition.models import ParaphraseRequest, ParaphraseResponse
 from firebase_admin import credentials, firestore
-from pydantic import BaseModel, Field
+
 from typing import List
-
-
-class ParaphraseRequest(BaseModel):
-    recognition_id: str = Field(..., description="인식 아이템 ID")
-    content: str = Field(..., description="패러프레이즈할 원본 텍스트 내용")
-    user_context: str = Field(..., description="사용자 컨텍스트 문자열")
-
-class ParaphraseResponse(BaseModel):
-    paraphrases: List[str] = Field(default_factory=list, description="생성된 패러프레이즈 목록")
-
 
 class RecognitionUseCase:
     def __init__(self, ai_service: RecognitionGenerator, repo: FirebaseRepository):
