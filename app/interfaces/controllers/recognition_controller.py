@@ -8,12 +8,12 @@ router = APIRouter()
 use_case = RecognitionUseCase(OpenAIService(), FirebaseRepository())
 
 @router.post("/api/paraphrase")
-def generate_paraphrase(recognition_id: str, content: str):
-    return use_case.generate_paraphrase(recognition_id, content)
+def generate_paraphrase(recognition_id: str, content: str, user_context: str):
+    return use_case.generate_paraphrase(recognition_id, content, user_context)
 
 @router.post("/api/recommended/context_tags")
-def generate_recommended_context_tags(recognition_id: str, content: str):
-    return use_case.generate_recommended_context_tags(recognition_id, content)
+def generate_recommended_context_tags(recognition_id: str, content: str, user_context: str):
+    return use_case.generate_recommended_context_tags(recognition_id, content, user_context)
 
 @router.post("/api/temp_actionable_steps")
 def generate_temp_actionable_steps(recognition_id: str, content: str):

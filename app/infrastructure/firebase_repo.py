@@ -115,3 +115,17 @@ class FirebaseRepository:
                      .where(filter=firestore.FieldFilter('type', '==', type)))
         tags_docs = tags_query.get()
         return [doc.to_dict() for doc in tags_docs]
+    
+    def get_user_tag_id(self, user_id: str, tag_name: str) -> str:
+        tag_query = (self.db.collection('user_tags')
+                    .where(filter=firestore.FieldFilter('user_id', '==', user_id))
+                    .where(filter=firestore.FieldFilter('tag_name', '==', tag_name)))
+        tag_docs = tag_query.get()
+        
+        if tag_docs:
+            return tag_docs[0].id
+        else:
+            return None
+    
+    def add_tag(self, tag_data: dict):
+        self.db.collection('user_tags').add(tag_data)

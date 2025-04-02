@@ -1,9 +1,8 @@
 from pydantic import BaseModel
 
 class User:
-    def __init__(self, name, uid, status, is_admin, email, residence, birth_date, occupation, personality):
+    def __init__(self, name, status, is_admin, email, residence, birth_date, occupation, personality):
         self.name = name
-        self.uid = uid
         self.status = status
         self.is_admin = is_admin
         self.email = email
@@ -39,4 +38,4 @@ User:
 
     @property
     def metadata_str(self):
-        return f"{self.name}_{self.uid}_{self.status}, isAdmin: {self.is_admin}"
+        return f"{self.name}_{self.status}, isAdmin: {self.is_admin}"

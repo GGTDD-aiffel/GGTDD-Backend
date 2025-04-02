@@ -20,9 +20,6 @@ class BaseLLMProcessor:
             llm (ChatOpenAI): 사용할 LLM 인스턴스
         """
         self.llm = llm
-        self.prompt_main = ""
-        self.prompt_kwargs = ""
-        self._prompt_template = self._create_prompt_template()
     
     def _create_prompt_template(self) -> ChatPromptTemplate:
         """

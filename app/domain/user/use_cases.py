@@ -4,13 +4,12 @@ from app.infrastructure.firebase_utils import convert_firebase_timestamp, conver
 from app.infrastructure.LLMs.user_generator import UserGenerator
 
 class UserUseCase:
-    def __init__(self, repo: FirebaseRepository, llm_service: UserGenerator):
+    def __init__(self, llm_service: UserGenerator, repo: FirebaseRepository):
         self.repo = repo
         self.llm_service = llm_service
     
     def create_user(self, user_id: str):
         user_data = self.repo.get_user(user_id)
-        user_data['uid'] = user_id
 
         user = User(**self._prepare_user_data(user_data))
         return user

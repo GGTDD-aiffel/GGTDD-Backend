@@ -58,3 +58,18 @@ def convert_firebase_MBTI(mbti_str):
             return []
     
     return result
+
+def clear_paraphrases_collection(firebase_repo, recognition_id):
+    """
+    특정 recognition_id에 대한 paraphrase 컬렉션을 삭제합니다.
+    
+    Args:
+        firebase_repo: FirebaseRepository 인스턴스
+        recognition_id: 삭제할 paraphrase의 recognition_id
+    """
+    # 해당 recognition_id를 가진 모든 paraphrase 문서 가져오기
+    docs = firebase_repo.db.collection('paraphrases').where('recognition_id', '==', recognition_id).get()
+    
+    # 각 문서 삭제
+    for doc in docs:
+        doc.reference.delete()
