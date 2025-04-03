@@ -9,7 +9,7 @@ class RecognitionGenerator(BaseLLMProcessor):
     def __init__(self, llm: ChatOpenAI):
         super().__init__(llm)
     
-    def generate_paraphrase(self, content: str):
+    def generate_paraphrase(self, user_context: str, content: str):
         """인식된 내용을 바탕으로 패러프레이즈 생성"""
         
         prompt = """
@@ -22,6 +22,7 @@ class RecognitionGenerator(BaseLLMProcessor):
         각각의 답변은 "---"로 구분하고, 답변 외의 부수적인 내용은 생략하세요.
 
         사용자가 입력한 할 일: {content}
+        사용자의 인적 정보: {bio}
         지침: {format_instruction}
         """
         
@@ -33,6 +34,7 @@ class RecognitionGenerator(BaseLLMProcessor):
         
         response = chain.invoke({
             "content": content,
+            "bio": user_context,
             "format_instruction": format_instruction
         })
         
