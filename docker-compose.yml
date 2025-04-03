@@ -8,3 +8,5 @@ services:
       - GOOGLE_APPLICATION_CREDENTIALS=/secrets/serviceAccountKey.json
     volumes:
       - ./firebase:/secrets
+    env_file:
+      - ./.env

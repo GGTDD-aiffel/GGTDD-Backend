@@ -8,25 +8,25 @@ from app.domain.recognition.use_cases import RecognitionUseCase
 
 tracker = PerformanceTracker()
 fbr = FirebaseRepository()
-userGenerator = UserGenerator(ChatOpenAI(model_name="gpt-4o-mini", temperature=0.5))
-userUseCase = UserUseCase(fbr, userGenerator)
+# userGenerator = UserGenerator(ChatOpenAI(model_name="gpt-4o-mini", temperature=0.5))
+# userUseCase = UserUseCase(fbr, userGenerator)
 
-recognitionGenerator = RecognitionGenerator(ChatOpenAI(model_name="gpt-4o-mini", temperature=0.5))
-recognitionUseCase = RecognitionUseCase(recognitionGenerator, fbr)
+# recognitionGenerator = RecognitionGenerator(ChatOpenAI(model_name="gpt-4o-mini", temperature=0.5))
+# recognitionUseCase = RecognitionUseCase(recognitionGenerator, fbr)
 
-user = userUseCase.create_user('wmnNRPATx5y8p5mp2rca')
-userUseCase.update_tags(user)
-userGenerator.generate_prompts(user)
+# user = userUseCase.create_user('wmnNRPATx5y8p5mp2rca')
+# userUseCase.update_tags(user)
+# userGenerator.generate_prompts(user)
 
-print(user.bio_str)
+# print(user.bio_str)
 
-prompt_index = input("프롬프트 중 선택할 인덱스를 입력하세요: ")
-userUseCase.select_prompt(user, int(prompt_index))
+# prompt_index = input("프롬프트 중 선택할 인덱스를 입력하세요: ")
+# userUseCase.select_prompt(user, int(prompt_index))
 
-print(user.bio_str)
+# print(user.bio_str)
 
-paraphrase = recognitionUseCase.generate_paraphrase("dummy", "체중감량을 위한 운동", user.bio_str)
-print(paraphrase)
+# paraphrase = recognitionUseCase.generate_paraphrase("dummy", "체중감량을 위한 운동", user.bio_str)
+# print(paraphrase)
 
 # paraphrase = tracker.measure(task_generator._process_paraphrase,
 #                             #   timeout=15,

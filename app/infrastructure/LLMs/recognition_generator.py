@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from app.infrastructure.LLMs.base_LLM_processoor import BaseLLMProcessor
-from app.domain.recognition.models import Paraphrase
+from app.domain.recognition.models import ParaphraseResponse, RecommendationResponse
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import BaseOutputParser, PydanticOutputParser
@@ -27,7 +27,7 @@ class RecognitionGenerator(BaseLLMProcessor):
         """
         
         prompt_template = self._create_prompt_template(prompt)
-        output_parser = ParaphraseOutputParser()
+        output_parser = PydanticOutputParser(pydantic_object=ParaphraseResponse)
         format_instruction = self._get_format_instructions(output_parser)
         
         chain = prompt_template | self.llm | output_parser
@@ -59,7 +59,7 @@ class RecognitionGenerator(BaseLLMProcessor):
         """
         
         prompt_template = self._create_prompt_template(prompt)
-        output_parser = PydanticOutputParser(pydantic_object=RecommendedTagsTemplate)
+        output_parser = PydanticOutputParser(pydantic_object=RecommendationResponse)
         format_instruction = self._get_format_instructions(output_parser)
         
         chain = prompt_template | self.llm | output_parser
@@ -78,27 +78,3 @@ class RecognitionGenerator(BaseLLMProcessor):
     def _get_format_instructions(self, outputParser: BaseOutputParser) -> str:
         """출력 형식 지침 생성"""
         return outputParser.get_format_instructions()
-
-class ParaphraseOutputParser(BaseOutputParser):
-    def parse(self, text: str) -> list[str]:
-        responses = text.split("---")
-        items = [response.strip() for response in responses]
-        return items
-
-    @staticmethod
-    def get_format_instructions() -> str:
-        return '서로 다른 답변은 "---"로 구분하세요.'
-
-class RecommendedTagsParser(BaseOutputParser):
-    def parse(self, text: str) -> dict:
-        tags = text.split(",")
-        return {tag.strip(): tag.strip() for tag in tags}
-    
-    @staticmethod
-    def get_format_instructions() -> str:
-        return '추천 태그는 쉼표로 구분하세요.'
-
-class RecommendedTagsTemplate(BaseModel):
-    time_tags: list[str] = []
-    space_tags: list[str] = []
-    other_tags: list[str] = []

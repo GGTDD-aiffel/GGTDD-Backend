@@ -46,6 +46,12 @@ class FirebaseRepository:
     # paraphrases
     def create_paraphrase(self, paraphrase_data: dict):
         self.db.collection('paraphrases').add(paraphrase_data)
+        
+    def delete_paraphrase_by_recognition_id(self, recognition_id: str):
+        query = self.db.collection('paraphrases').where('recognition_id', '==', recognition_id)
+        docs = query.get()
+        for doc in docs:
+            doc.reference.delete()
 
     # recommended_context_tags
     def create_recommendation(self, recommendation_data: dict):

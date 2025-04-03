@@ -14,6 +14,7 @@ class ParaphraseRequest(BaseModel):
     user_context: str = Field(..., description="사용자 컨텍스트 문자열")
 
 class ParaphraseResponse(BaseModel):
+    recognition_id: str = Field(..., description="인식 아이템 ID")
     paraphrases: List[str] = Field(default_factory=list, description="생성된 패러프레이즈 목록")
 
 class RecommendationRequest(BaseModel):
@@ -22,4 +23,8 @@ class RecommendationRequest(BaseModel):
     user_context: str = Field(..., description="사용자 컨텍스트 문자열")
 
 class RecommendationResponse(BaseModel):
-    recommended_tags: List[str] = Field(default_factory=list, description="추천된 태그 목록")
+    recognition_id: str = Field(..., description="인식 아이템 ID")
+    context: str = Field(..., description="추천된 컨텍스트")
+    location_tags: List[str] = Field(default_factory=list, description="추천된 위치 태그 목록")
+    time_tags: List[str] = Field(default_factory=list, description="추천된 시간 태그 목록")
+    other_tags: List[str] = Field(default_factory=list, description="추천된 기타 태그 목록")
