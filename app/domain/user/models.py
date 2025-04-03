@@ -1,19 +1,22 @@
+from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel
 
-class User:
-    def __init__(self, name, status, is_admin, email, residence, birth_date, occupation, personality):
-        self.name = name
-        self.status = status
-        self.is_admin = is_admin
-        self.email = email
-        self.residence = residence
-        self.birth_date = birth_date
-        self.occupation = occupation
-        self.personality = personality
-        self.location_tags = []
-        self.time_tags = []
-        self.other_tags = []
-        self._prompts = []
+class User(BaseModel):
+    name: str
+    uid: str
+    status: str
+    is_admin: bool
+    email: str
+    residence: str
+    birth_date: Optional[datetime] = None
+    occupation: str
+    personality: list[str]
+    location_tags: list[str] = []
+    time_tags: list[str] = []
+    other_tags: list[str] = []
+    _prompts: list[str] = []
+    selected_prompt: str = None
         
     @property
     def bio_str(self):

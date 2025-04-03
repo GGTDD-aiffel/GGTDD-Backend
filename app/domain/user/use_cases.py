@@ -11,13 +11,13 @@ class UserUseCase:
     def create_user(self, user_id: str):
         user_data = self.repo.get_user(user_id)
 
-        user = User(**self._prepare_user_data(user_data))
+        user = User(**self._prepare_user_data(user_data, user_id))
         return user
     
-    def _prepare_user_data(self, user_data):
+    def _prepare_user_data(self, user_data, uid):
         return {
             'name': user_data['name'],
-            'uid': user_data['uid'],
+            'uid': uid,
             'email': user_data['email'],
             'residence': user_data['residence'],
             'birth_date': convert_firebase_timestamp(user_data['birth_date']),

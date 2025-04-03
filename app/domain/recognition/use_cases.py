@@ -1,6 +1,6 @@
 from app.infrastructure.LLMs.recognition_generator import RecognitionGenerator
 from app.infrastructure.firebase_repo import FirebaseRepository
-from app.domain.recognition.models import ParaphraseRequest, ParaphraseResponse
+from app.domain.recognition.models import ParaphraseRequest, ParaphraseResponse, RecommendationRequest, RecommendationResponse
 from firebase_admin import credentials, firestore
 
 from typing import List
@@ -38,31 +38,22 @@ class RecognitionUseCase:
         
         return ParaphraseResponse(paraphrases=paraphrases_list)
 
-    def generate_recommended_context_tags(self, recognition_id: str, content: str, user_context: str):
-        recommended_tags = self.ai_service.generate_context_tags(user_context, content)
+    def generate_recommended_context_tags(self, request: RecommendationRequest) -> RecommendationResponse:
+        recommended_tags = self.ai_service.generate_context_tags(
+            request.user_context,
+            request.content
+        )
         
         for tag in recommended_tags:
-            print(tag)
             tag_data = {
-                'recognition_id': recognition_id,
+                'recognition_id': request.recognition_id,
                 'user_context_id': recommended_tags.get('context'),
-                'user_tag_id': self.repo.get_user_tag_id(user_id=user_id, tag_name=tag),
+                'user_tag_id': self.repo.get_user_tag_id(user_id=request.user_context, tag_name=tag),
                 'created_at': firestore.SERVER_TIMESTAMP
             }
             self.repo.create_recommendation(tag_data)
-        return recommended_tags
+        return RecommendationResponse(recommended_tags=recommended_tags)
 
-    # def generate_recommended_context_tags(self, recognition_id: str, content: str):
-    #     recommendations = self.ai_service.generate_context_tags(content)
-    #     recommendation_data = {
-    #         'recognition_id': recognition_id,
-    #         'user_context_id': recommendations.get('context'),
-    #         'user_tag_id': recommendations.get('tags'),
-    #         'created_at': firestore.SERVER_TIMESTAMP
-    #     }
-    #     self.repo.create_recommendation(recommendation_data)
-    #     return recommendations
-    
     def generate_temp_actionable_steps(self, recognition_id: str, content: str):
         steps = self.ai_service.generate_temp_actionable_steps(content)
         for step in steps:
