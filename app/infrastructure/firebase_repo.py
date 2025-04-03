@@ -2,21 +2,6 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from google.type import datetime_pb2
 
-firebase_admin.initialize_app(credentials.Certificate('firebase/serviceAccountKey.json'))
-
-# Cloud Run에서 마운트된 파일 경로 사용
-# FIRESTORE_KEY_PATH = "/secrets/serviceAccountKey.json"
-# firebase_admin.initialize_app(credentials.Certificate(FIRESTORE_KEY_PATH))
-
-"""
-gcloud run deploy fastapi-firestore \
-    --image gcr.io/[PROJECT-ID]/fastapi-firestore:latest \
-    --platform managed \
-    --region us-central1 \
-    --allow-unauthenticated \
-    --set-secrets "/secrets/serviceAccountKey.json=firebase-service-account:latest"
-"""
-
 class FirebaseRepository:
     def __init__(self):
         self.db = firestore.client()

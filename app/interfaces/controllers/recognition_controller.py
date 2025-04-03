@@ -1,6 +1,7 @@
 from fastapi import APIRouter
+from langchain_openai import ChatOpenAI
 
-from app.infrastructure.openai_service import OpenAIService
+from app.infrastructure.LLMs.recognition_generator import RecognitionGenerator
 from app.infrastructure.firebase_repo import FirebaseRepository
 from app.domain.recognition.use_cases import RecognitionUseCase
 from app.domain.recognition.models import (
@@ -9,7 +10,8 @@ from app.domain.recognition.models import (
 )
 
 router = APIRouter()
-use_case = RecognitionUseCase(OpenAIService(), FirebaseRepository())
+recognitionGenerator = RecognitionGenerator(ChatOpenAI(model_name="gpt-4o-mini", temperature=0.5))
+use_case = RecognitionUseCase(recognitionGenerator, FirebaseRepository())
 
 @router.post("/api/paraphrase")
 def generate_paraphrase(request: ParaphraseRequest):
