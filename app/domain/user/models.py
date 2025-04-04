@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class User(BaseModel):
     name: str
@@ -11,16 +11,16 @@ class User(BaseModel):
     birth_date: Optional[datetime] = None
     occupation: str
     personality: list[str]
-    location_tags: list[str] = []
-    time_tags: list[str] = []
-    other_tags: list[str] = []
-    _prompts: list[str] = []
-    selected_prompt: str = None
+    location_tags: list[str] = Field(default_factory=list, description="장소 관련 태그")
+    time_tags: list[str] = Field(default_factory=list, description="시간 관련 태그")
+    other_tags: list[str] = Field(default_factory=list, description="기타 태그")
+    prompts: list[str] = Field(default_factory=list, description="프롬프트 목록")
+    selected_prompt: Optional[str] = None
         
     @property
     def bio_str(self):
         birth_date_str = self.birth_date.strftime('%Y-%m-%d') if self.birth_date else 'None'
-        prompts = '\n\t'.join(self._prompts) if self._prompts else '[]'
+        prompts = '\n\t'.join(self.prompts) if self.prompts else '[]'
         
         return_string = f"""
 User:
@@ -32,7 +32,7 @@ User:
     장소 태그: {', '.join(self.location_tags) if self.location_tags else '[]'}
     시간 태그: {', '.join(self.time_tags) if self.time_tags else '[]'}
     기타 태그: {', '.join(self.other_tags) if self.other_tags else '[]'}
-    프롬프트 수: {len(self._prompts)}
+    프롬프트 수: {len(self.prompts)}
     프롬프트 내용: \n\t{prompts}
         """
         
@@ -41,3 +41,9 @@ User:
     @property
     def metadata_str(self):
         return f"{self.name}_{self.status}, isAdmin: {self.is_admin}"
+
+class UserRequest(BaseModel):
+    user_id: str = Field(..., description="사용자 ID")
+
+class UserPromptsResponse(BaseModel):
+    prompts: list[str] = Field(default_factory=list, description="생성된 프롬프트 목록")

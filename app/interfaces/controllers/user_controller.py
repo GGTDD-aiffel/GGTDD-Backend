@@ -34,4 +34,7 @@ def generate_prompts_and_tags(request: UserRequest, user_generator: UserGenerato
         repo=FirebaseRepository(),
         llm_service=user_generator
     )
-    return user_use_case.generate_user_prompts_and_tags(request.user_id)
+    
+    response = user_use_case.generate_user_prompts_and_tags(request.user_id)
+    
+    return response

@@ -1,4 +1,5 @@
-from app.domain.user.models import User
+from app.domain.common.models import BaseResponse
+from app.domain.user.models import User, UserRequest, UserPromptsResponse
 from app.infrastructure.firebase_repo import FirebaseRepository
 from app.infrastructure.firebase_utils import convert_firebase_timestamp, convert_firebase_MBTI
 from app.infrastructure.LLMs.user_generator import UserGenerator
@@ -12,7 +13,14 @@ class UserUseCase:
         user_data = self.repo.get_user(user_id)
 
         user = User(**self._prepare_user_data(user_data))
-        response = self.llm_service.generate_prompts_and_tags(user)
+        context_and_tags = self.llm_service.generate_prompts_and_tags(user)
+        
+        response = BaseResponse[UserPromptsResponse](
+            code=200,
+            status="success",
+            message="프롬프트 생성 성공",
+            data=context_and_tags
+        )
 
         return response
     
