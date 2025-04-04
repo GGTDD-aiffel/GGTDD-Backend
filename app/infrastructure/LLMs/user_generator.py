@@ -1,29 +1,15 @@
 from pydantic import BaseModel
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.output_parsers import BaseOutputParser, PydanticOutputParser
 
 from app.infrastructure.LLMs.base_LLM_processoor import BaseLLMProcessor
-from app.domain.user.models import User
+from app.domain.user.models import User, UserResponse
 
 class UserGenerator(BaseLLMProcessor):
     def __init__(self, llm: ChatOpenAI):
         super().__init__(llm)
 
-    def generate_prompts(self, user: User):
-        """사용자 정보 기반 프롬프트 생성"""
-        prompt_template = self._create_prompt_template()
-        output_parser = PydanticOutputParser(pydantic_object=UserPromptsTemplate)
-        format_instruction = self._get_format_instructions()
-        
-        chain = prompt_template | self.llm | output_parser
-        
-        response = chain.invoke({
-            "bio": user.bio_str, "format_instruction": format_instruction
-        })
-        
-        user._prompts = response.prompt
-        return user._prompts
     
     def _create_prompt_template(self):
         """프롬프트 템플릿 생성"""
@@ -43,10 +29,20 @@ class UserGenerator(BaseLLMProcessor):
         답변 지침: {format_instruction}
         """)
     
-    def _get_format_instructions(self):
-        """출력 형식 지침 생성"""
-        output_parser = PydanticOutputParser(pydantic_object=UserPromptsTemplate)
-        return output_parser.get_format_instructions()
+    def generate_prompts(self, user: User):
+        """사용자 정보 기반 프롬프트 생성"""
+        prompt_template = self._create_prompt_template()
+        output_parser = PydanticOutputParser(pydantic_object=UserResponse)
+        format_instruction = self._get_format_instructions(output_parser)
+        
+        chain = prompt_template | self.llm | output_parser
+        
+        response = chain.invoke({
+            "bio": user.bio_str, "format_instruction": format_instruction
+        })
+        
+        return response
 
-class UserPromptsTemplate(BaseModel):
-    prompt: list[str] = []
+    def _get_format_instructions(self, output_parser: BaseOutputParser):
+        """출력 형식 지침 생성"""
+        return output_parser.get_format_instructions()

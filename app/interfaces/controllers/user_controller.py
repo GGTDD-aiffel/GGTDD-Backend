@@ -36,13 +36,3 @@ def generate_user(user_id: str, use_case: UserUseCase = Depends(get_use_case)):
 def generate_prompts(user: User, user_generator: UserGenerator = Depends(get_user_generator)):
     """사용자 프롬프트 생성"""
     return user_generator.generate_prompts(user)
-
-@router.post("/api/user/prompt/select")
-def select_prompt(user: User, index: int, use_case: UserUseCase = Depends(get_use_case)):
-    """사용자 프롬프트 선택"""
-    return use_case.select_prompt(user, index)
-
-@router.post("/api/user/tag/update")
-def update_tags(user: User, use_case: UserUseCase = Depends(get_use_case)):
-    """사용자 태그 업데이트"""
-    return use_case.update_tags(user)

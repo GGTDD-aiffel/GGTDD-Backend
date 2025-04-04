@@ -41,3 +41,18 @@ def test_recommendation():
     print(response.json())
     
     assert response.status_code == 200
+
+def test_temp_actionable_steps():
+    body = {
+        "recognition_id": "12345",
+        "content": "example content"
+    }
+    
+    response = client.post(
+        "/api/temp_actionable_steps",
+        json=body,
+    )
+    
+    print(response.json())
+    
+    assert response.status_code == 200

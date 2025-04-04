@@ -17,7 +17,6 @@ class UserUseCase:
     def _prepare_user_data(self, user_data, uid):
         return {
             'name': user_data['name'],
-            'uid': uid,
             'email': user_data['email'],
             'residence': user_data['residence'],
             'birth_date': convert_firebase_timestamp(user_data['birth_date']),

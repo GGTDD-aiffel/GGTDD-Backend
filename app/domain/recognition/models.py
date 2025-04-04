@@ -25,6 +25,6 @@ class RecommendationRequest(BaseModel):
 class RecommendationResponse(BaseModel):
     recognition_id: str = Field(..., description="인식 아이템 ID")
     context: str = Field(..., description="추천된 컨텍스트")
-    location_tags: List[str] = Field(default_factory=list, description="추천된 위치 태그 목록")
-    time_tags: List[str] = Field(default_factory=list, description="추천된 시간 태그 목록")
-    other_tags: List[str] = Field(default_factory=list, description="추천된 기타 태그 목록")
+    location_tags_ID: List[str] = Field(default_factory=list, description="추천된 위치 태그 목록")
+    time_tags_ID: List[str] = Field(default_factory=list, description="추천된 시간 태그 목록")
+    other_tags_ID: List[str] = Field(default_factory=list, description="추천된 기타 태그 목록")
