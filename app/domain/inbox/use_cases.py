@@ -5,8 +5,8 @@ class InboxUseCase:
     def __init__(self, repo: FirebaseRepository):
         self.repo = repo
 
-    def get_inboxes(self, user_id: str, page: int, limit: int) -> InboxResponse:
-        data = self.repo.get_inboxes(user_id, page, limit)
+    def get_inboxes(self, user_id: str, page: int, limit: int, is_sent_to_recognition: bool) -> InboxResponse:
+        data = self.repo.get_inboxes(user_id, page, limit, is_sent_to_recognition)
         return InboxResponse(**data)
 
     def send_to_recognition(self, content_id: str):

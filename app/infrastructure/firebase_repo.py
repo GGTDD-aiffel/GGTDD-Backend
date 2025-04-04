@@ -7,9 +7,10 @@ class FirebaseRepository:
         self.db = firestore.client()
 
     # inbox
-    def get_inboxes(self, user_id: str, page: int, limit: int) -> dict:
+    def get_inboxes(self, user_id: str, page: int, limit: int, is_sent_to_recognition: bool) -> dict:
         query = (self.db.collection('inbox')
                 .where('user_id', '==', user_id)
+                .where('is_sent_to_recognition', '==', is_sent_to_recognition)
                 .order_by('created_at', direction=firestore.Query.ASCENDING)
                 .limit(limit)
                 .offset((page - 1) * limit))
