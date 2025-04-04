@@ -38,6 +38,33 @@ def test_recommendation():
         json=body.model_dump(),
     )
     
+    assert response.status_code == 200
+
+# def test_temp_actionable_steps():
+#     body = {
+#         "recognition_id": "12345",
+#         "content": "example content"
+#     }
+    
+#     response = client.post(
+#         "/api/temp_actionable_steps",
+#         json=body,
+#     )
+    
+#     print(response.json())
+    
+#     assert response.status_code == 200
+
+def test_generate_userdata():
+    body = {
+        "user_id": "WMrfxAMPekN08qs8mEjH",
+    }
+    
+    response = client.post(
+        "/api/user/generate",
+        json=body,
+    )
+    
     print(response.json())
     
     assert response.status_code == 200

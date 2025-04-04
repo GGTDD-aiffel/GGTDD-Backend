@@ -4,7 +4,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import BaseOutputParser, PydanticOutputParser
 
 from app.infrastructure.LLMs.base_LLM_processoor import BaseLLMProcessor
-from app.domain.user.models import User, UserResponse
+from app.domain.user.models import User, UserPromptsResponse
 
 class UserGenerator(BaseLLMProcessor):
     def __init__(self, llm: ChatOpenAI):
@@ -29,10 +29,10 @@ class UserGenerator(BaseLLMProcessor):
         답변 지침: {format_instruction}
         """)
     
-    def generate_prompts(self, user: User):
+    def generate_prompts_and_tags(self, user: User):
         """사용자 정보 기반 프롬프트 생성"""
         prompt_template = self._create_prompt_template()
-        output_parser = PydanticOutputParser(pydantic_object=UserResponse)
+        output_parser = PydanticOutputParser(pydantic_object=UserPromptsResponse)
         format_instruction = self._get_format_instructions(output_parser)
         
         chain = prompt_template | self.llm | output_parser

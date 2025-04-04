@@ -41,12 +41,3 @@ User:
     @property
     def metadata_str(self):
         return f"{self.name}_{self.status}, isAdmin: {self.is_admin}"
-
-class UserRequest(BaseModel):
-    user_id: str
-
-class UserResponse(BaseModel):
-    location_tags: list[str] = []
-    time_tags: list[str] = []
-    other_tags: list[str] = []
-    _prompts: list[str] = []

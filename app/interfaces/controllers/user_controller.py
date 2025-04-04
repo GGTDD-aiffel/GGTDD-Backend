@@ -4,7 +4,7 @@ from langchain_openai import ChatOpenAI
 from app.infrastructure.firebase_repo import FirebaseRepository
 from app.infrastructure.LLMs.user_generator import UserGenerator
 from app.domain.user.use_cases import UserUseCase
-from app.domain.user.models import User
+from app.domain.user.models import User, UserRequest, UserPromptsResponse
 
 router = APIRouter()
 
@@ -28,11 +28,10 @@ def get_use_case(repo: FirebaseRepository = Depends(get_firebase_repo),
 
 # API 엔드포인트 정의
 @router.post("/api/user/generate")
-def generate_user(user_id: str, use_case: UserUseCase = Depends(get_use_case)):
-    """사용자 정보 생성"""
-    return use_case.create_user(user_id)
-
-@router.post("/api/user/prompt/generate")
-def generate_prompts(user: User, user_generator: UserGenerator = Depends(get_user_generator)):
+def generate_prompts_and_tags(request: UserRequest, user_generator: UserGenerator = Depends(get_user_generator)):
     """사용자 프롬프트 생성"""
-    return user_generator.generate_prompts(user)
+    user_use_case = UserUseCase(
+        repo=FirebaseRepository(),
+        llm_service=user_generator
+    )
+    return user_use_case.generate_user_prompts_and_tags(request.user_id)

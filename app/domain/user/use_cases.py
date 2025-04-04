@@ -8,13 +8,15 @@ class UserUseCase:
         self.repo = repo
         self.llm_service = llm_service
     
-    def create_user(self, user_id: str):
+    def generate_user_prompts_and_tags(self, user_id: str):
         user_data = self.repo.get_user(user_id)
 
-        user = User(**self._prepare_user_data(user_data, user_id))
-        return user
+        user = User(**self._prepare_user_data(user_data))
+        response = self.llm_service.generate_prompts_and_tags(user)
+
+        return response
     
-    def _prepare_user_data(self, user_data, uid):
+    def _prepare_user_data(self, user_data):
         return {
             'name': user_data['name'],
             'email': user_data['email'],

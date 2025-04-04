@@ -5,9 +5,13 @@ from fastapi import FastAPI
 
 # 인증 초기화 (환경 변수 사용)
 if not firebase_admin._apps:
-    firebase_admin.initialize_app(credentials.Certificate("/secrets/serviceAccountKey.json"))
+    firebase_admin.initialize_app(credentials.Certificate("secrets/serviceAccountKey.json"))
     
-from app.interfaces.controllers import actionable_step_controller, inbox_controller, recognition_controller, user_controller
+from app.interfaces.controllers import (
+    actionable_step_controller,
+    inbox_controller,
+    recognition_controller,
+    user_controller)
 
 app = FastAPI()
 
