@@ -9,7 +9,7 @@ class RecognitionGenerator(BaseLLMProcessor):
     def __init__(self, llm: ChatOpenAI):
         super().__init__(llm)
     
-    def generate_paraphrase(self, user_context: str, content: str):
+    def generate_paraphrase(self, user_context: str, user_tags: str, content: str):
         """인식된 내용을 바탕으로 패러프레이즈 생성"""
         
         prompt = """
@@ -23,6 +23,7 @@ class RecognitionGenerator(BaseLLMProcessor):
 
         사용자가 입력한 할 일: {content}
         사용자의 인적 정보: {bio}
+        사용자의 태그: {tags}
         지침: {format_instruction}
         """
         
@@ -35,12 +36,13 @@ class RecognitionGenerator(BaseLLMProcessor):
         response = chain.invoke({
             "content": content,
             "bio": user_context,
+            "tags": user_tags,
             "format_instruction": format_instruction
         })
         
         return response
     
-    def generate_context_tags(self, user_bio: str, content: str):
+    def generate_context_tags(self, user_bio: str, user_tags: str, content: str):
         """인식된 내용을 바탕으로 추천 태그 생성"""
         
         prompt = """
@@ -55,6 +57,8 @@ class RecognitionGenerator(BaseLLMProcessor):
         각각의 태그는 되도록이면 사용자의 인적 정보에 포함되어 있는 태그 정보를 활용하여 작성하세요.
         
         사용자가 입력한 할 일: {content}
+        사용자의 인적 정보: {bio}
+        사용자의 태그: {tags}
         지침: {format_instruction}
         """
         
@@ -66,6 +70,8 @@ class RecognitionGenerator(BaseLLMProcessor):
         
         response = chain.invoke({
             "content": content,
+            "bio": user_bio,
+            "tags": user_tags,
             "format_instruction": format_instruction
         })
         

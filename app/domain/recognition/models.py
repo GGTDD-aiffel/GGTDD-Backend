@@ -11,6 +11,7 @@ class Paraphrase(BaseModel):
 class ParaphraseRequest(BaseModel):
     recognition_id: str = Field(..., description="인식 아이템 ID")
     content: str = Field(..., description="패러프레이즈할 원본 텍스트 내용")
+    user_id: str = Field(..., description="사용자 ID")
     user_context: str = Field(..., description="사용자 컨텍스트 문자열")
 
 class ParaphraseResponse(BaseModel):
@@ -20,6 +21,7 @@ class ParaphraseResponse(BaseModel):
 class RecommendationRequest(BaseModel):
     recognition_id: str = Field(..., description="인식 아이템 ID")
     content: str = Field(..., description="추천할 원본 텍스트 내용")
+    user_id: str = Field(..., description="사용자 ID")
     user_context: str = Field(..., description="사용자 컨텍스트 문자열")
 
 class RecommendationResponse(BaseModel):

@@ -121,3 +121,10 @@ class FirebaseRepository:
     
     def add_tag(self, tag_data: dict):
         self.db.collection('user_tags').add(tag_data)
+    
+    def get_user_tags(self, user_id: str) -> list:
+        tags_query = (self.db.collection('user_tags')
+                      .where(filter=firestore.FieldFilter('user_id', '==', user_id)))
+        tags_docs = tags_query.get()
+        
+        return [doc.to_dict() for doc in tags_docs] if tags_docs else []
