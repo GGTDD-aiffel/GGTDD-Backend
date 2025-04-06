@@ -1,16 +1,16 @@
 from app.domain.actionable_step.models import ActionableStep
 from app.infrastructure.firebase_repo import FirebaseRepository
 from app.infrastructure.openai_service import OpenAIService
-from typing import Union, Optional
+from typing import List, Union, Optional
 
 class ActionableStepUseCase:
     def __init__(self, repo: FirebaseRepository, ai_service: Optional[OpenAIService] = None):
         self.repo = repo
         self.ai_service = ai_service
 
-    def get_actionable_steps(self, user_id: str, page: int, limit: int) -> list[ActionableStep]:
-        data = self.repo.get_actionable_steps(user_id, page, limit)
-        return [ActionableStep(**item) for item in data]
+    def get_actionable_steps(self, user_id: str, page: int, limit: int, context_names: Optional[List[str]] = None, tag_names: Optional[List[str]] = None):
+        data = self.repo.get_actionable_steps(user_id, page, limit, context_names, tag_names)
+        return data
 
     def get_today_actionable_steps(self, user_id: str) -> list[ActionableStep]:
         if not self.ai_service:
