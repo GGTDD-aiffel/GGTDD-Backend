@@ -78,41 +78,13 @@ class RecognitionUseCase:
             # 인식 ID 설정
             recommendation_response.recognition_id = request.recognition_id
             
-            # 태그 ID 처리를 위한 헬퍼 함수
-            def get_tag_ids(tag_list, tag_type):
-                tag_ids = []
-                created_tags = []
-                
-                for tag in tag_list:
-                    # 기존 태그 ID 조회
-                    tag_id = self.repo.get_user_tag_id(request.user_id, tag)
-                    
-                    # 태그가 없으면 생성
-                    # if not tag_id:
-                    #     tag_data = {
-                    #         'user_id': request.user_id,
-                    #         'tag_name': tag,
-                    #         'tag_type': tag_type,
-                    #         'created_at': firestore.SERVER_TIMESTAMP
-                    #     }
-                    #     tag_id = self.repo.create_user_tag(tag_data)
-                    #     created_tags.append(tag)
-                    
-                    tag_ids.append(tag_id)
-                
-                # 새로 생성된 태그가 있으면 로깅
-                if created_tags:
-                    print(f"새로 생성된 {tag_type} 태그: {', '.join(created_tags)}")
-                    
-                return tag_ids
-            
             # 각 태그 유형별로 ID 조회/생성
-            recommendation_response.location_tags_ID = get_tag_ids(
-                recommendation_response.location_tags_ID, "location")
-            recommendation_response.time_tags_ID = get_tag_ids(
-                recommendation_response.time_tags_ID, "time")
-            recommendation_response.other_tags_ID = get_tag_ids(
-                recommendation_response.other_tags_ID, "other")
+            recommendation_response.location_tags_ID = self.get_tag_ids(
+                request, recommendation_response.location_tags_ID, "location")
+            recommendation_response.time_tags_ID = self.get_tag_ids(
+                request, recommendation_response.time_tags_ID, "time")
+            recommendation_response.other_tags_ID = self.get_tag_ids(
+                request, recommendation_response.other_tags_ID, "other")
             
             # 인식 객체에 태그 연결 정보 저장
             # tag_link_data = {
@@ -143,19 +115,17 @@ class RecognitionUseCase:
     def generate_temp_actionable_steps(self, request: TempActionableStepsRequest) -> BaseResponse[TempActionableStepsResponse]:
         steps = self.ai_service.generate_temp_actionable_steps(
             self.get_user_context(request.user_id),
-            self.get_user_tags(request.user_id),
+            request.recommended_tags,
+            request.recommended_context,
             request.content
         )
         
         steps.recognition_id = request.recognition_id
 
-        # for step in steps:
-        #     temp_step_data = {
-        #         'recognition_id': request.recognition_id,
-        #         'step_content': step,
-        #         'created_at': firestore.SERVER_TIMESTAMP
-        #     }
-        #     self.repo.create_temp_actionable_step(temp_step_data)
+        for step in steps.actionable_steps:
+            step.location_tags_ID = self.get_tag_ids(request, step.location_tags_ID, "location")
+            step.time_tags_ID = self.get_tag_ids(request, step.time_tags_ID, "time")
+            step.other_tags_ID = self.get_tag_ids(request, step.other_tags_ID, "other")
             
         response = BaseResponse[TempActionableStepsResponse](
             code=200,
@@ -201,5 +171,33 @@ class RecognitionUseCase:
         Returns:
             List[str]: 사용자 컨텍스트 목록
         """
-        contexts = self.repo.get_user_prompts(user_id)
-        return [context['context_name'] for context in contexts] if contexts else []
+        context = self.repo.get_user_prompts(user_id)
+        return context
+
+    # 태그 ID 처리를 위한 헬퍼 함수
+    def get_tag_ids(self, request, tag_list, tag_type):
+        tag_ids = []
+        created_tags = []
+        
+        for tag in tag_list:
+            # 기존 태그 ID 조회
+            tag_id = self.repo.get_user_tag_id(request.user_id, tag)
+            
+            # 태그가 없으면 생성
+            # if not tag_id:
+            #     tag_data = {
+            #         'user_id': request.user_id,
+            #         'tag_name': tag,
+            #         'tag_type': tag_type,
+            #         'created_at': firestore.SERVER_TIMESTAMP
+            #     }
+            #     tag_id = self.repo.create_user_tag(tag_data)
+            #     created_tags.append(tag)
+            
+            tag_ids.append(tag_id)
+        
+        # 새로 생성된 태그가 있으면 로깅
+        if created_tags:
+            print(f"새로 생성된 {tag_type} 태그: {', '.join(created_tags)}")
+            
+        return tag_ids

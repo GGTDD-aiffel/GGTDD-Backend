@@ -164,8 +164,19 @@ class FirebaseRepository:
         return [doc.to_dict() for doc in tags_docs] if tags_docs else []
     
     def get_user_prompts(self, user_id: str) -> list:
-        prompts_query = (self.db.collection('user_prompts')
-                         .where(filter=firestore.FieldFilter('user_id', '==', user_id)))
-        prompts_docs = prompts_query.get()
+        """
+        사용자 ID에 해당하는 프롬프트 목록을 반환합니다.
         
-        return [doc.to_dict() for doc in prompts_docs] if prompts_docs else []
+        Args:
+            user_id: 사용자 문서 ID
+            
+        Returns:
+            사용자의 프롬프트 목록 또는 빈 리스트
+        """
+        user_doc = self.db.collection('users').document(user_id).get()
+        
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            return user_data.get('user_prompt', [])
+        
+        return []

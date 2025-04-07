@@ -77,9 +77,9 @@ class RecognitionGenerator(BaseLLMProcessor):
         
         return response
     
-    def generate_temp_actionable_steps(self, user_bio: str, user_tags: str, content: str):
+    def generate_temp_actionable_steps(self, user_bio: str, user_tags: str, context: str, content: str):
         """사용자가 입력한 할 일을 actionable_steps로 분해 및 구체화"""
-        
+                
         prompt = """
         다음은 사용자가 입력한 해야 할 일입니다. 이 할 일에 대한 구체적인 스텝을 주어진 숫자에 맞추어 작성하세요.
         단, 생성할 스텝의 수가 0으로 주어진다면 스텝을 생성하지 않고, 태스크만 생성합니다.
@@ -94,6 +94,7 @@ class RecognitionGenerator(BaseLLMProcessor):
         스텝을 생성할 때에는, 각 스텝을 수행하는 데에 필요한 노력과 시간을 고려하세요.
 
         사용자의 인적 정보: {bio}
+        사용자의 맥락: {context}
         사용자의 하루 일과: {tags}
         사용자가 입력한 할 일: {content}
         지침: {format_instruction}
@@ -104,9 +105,12 @@ class RecognitionGenerator(BaseLLMProcessor):
         format_instruction = self._get_format_instructions(output_parser)
         
         chain = prompt_template | self.llm | output_parser
+        
+        print(user_tags)
 
         response = chain.invoke({
             "bio": user_bio,
+            "context": context,
             "tags": user_tags,
             "content": content,
             "format_instruction": format_instruction
