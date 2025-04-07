@@ -5,7 +5,9 @@ from app.domain.recognition.models import (
     ParaphraseRequest,
     ParaphraseResponse,
     RecommendationRequest,
-    RecommendationResponse
+    RecommendationResponse,
+    TempActionableStepsRequest,
+    TempActionableStepsResponse
 )
 
 from firebase_admin import firestore
@@ -27,7 +29,7 @@ class RecognitionUseCase:
             생성된 패러프레이즈 목록을 담은 응답 객체
         """
         paraphrases_response = self.ai_service.generate_paraphrase(
-            request.user_context, 
+            self.get_user_context(request.user_id), 
             self.get_user_tags(request.user_id),
             request.content
         )
@@ -68,7 +70,7 @@ class RecognitionUseCase:
         try:
             # LLM으로 태그 생성
             recommendation_response = self.ai_service.generate_context_tags(
-                request.user_context,
+                self.get_user_context(request.user_id),
                 self.get_user_tags(request.user_id),
                 request.content
             )
@@ -138,16 +140,30 @@ class RecognitionUseCase:
                 data=None
             )
 
-    # def generate_temp_actionable_steps(self, recognition_id: str, content: str):
-    #     steps = self.ai_service.generate_temp_actionable_steps(content)
-    #     for step in steps:
-    #         temp_step_data = {
-    #             'recognition_id': recognition_id,
-    #             'step_content': step,
-    #             'created_at': firestore.SERVER_TIMESTAMP
-    #         }
-    #         self.repo.create_temp_actionable_step(temp_step_data)
-    #     return steps
+    def generate_temp_actionable_steps(self, request: TempActionableStepsRequest) -> BaseResponse[TempActionableStepsResponse]:
+        steps = self.ai_service.generate_temp_actionable_steps(
+            self.get_user_context(request.user_id),
+            self.get_user_tags(request.user_id),
+            request.content
+        )
+        
+        steps.recognition_id = request.recognition_id
+
+        # for step in steps:
+        #     temp_step_data = {
+        #         'recognition_id': request.recognition_id,
+        #         'step_content': step,
+        #         'created_at': firestore.SERVER_TIMESTAMP
+        #     }
+        #     self.repo.create_temp_actionable_step(temp_step_data)
+            
+        response = BaseResponse[TempActionableStepsResponse](
+            code=200,
+            status="success",
+            message="임시 actionable steps 생성 성공",
+            data=steps
+        )
+        return response
     
     # def save_actionable_steps(self, temp_step_ids: list[str], content_id: str):
     #     for temp_id in temp_step_ids:
@@ -174,3 +190,16 @@ class RecognitionUseCase:
         """
         tags = self.repo.get_user_tags(user_id)
         return [tag['tag_name'] for tag in tags] if tags else []
+    
+    def get_user_context(self, user_id: str) -> dict:
+        """_summary_
+        사용자의 컨텍스트를 데이터베이스에서 가져옵니다.
+
+        Args:
+            user_id (str): 사용자 ID
+
+        Returns:
+            List[str]: 사용자 컨텍스트 목록
+        """
+        contexts = self.repo.get_user_prompts(user_id)
+        return [context['context_name'] for context in contexts] if contexts else []

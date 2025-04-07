@@ -162,3 +162,10 @@ class FirebaseRepository:
         tags_docs = tags_query.get()
         
         return [doc.to_dict() for doc in tags_docs] if tags_docs else []
+    
+    def get_user_prompts(self, user_id: str) -> list:
+        prompts_query = (self.db.collection('user_prompts')
+                         .where(filter=firestore.FieldFilter('user_id', '==', user_id)))
+        prompts_docs = prompts_query.get()
+        
+        return [doc.to_dict() for doc in prompts_docs] if prompts_docs else []

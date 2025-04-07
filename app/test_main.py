@@ -1,5 +1,9 @@
 from fastapi.testclient import TestClient
-from app.domain.recognition.models import ParaphraseRequest, ParaphraseResponse, RecommendationRequest, RecommendationResponse
+from app.domain.recognition.models import (
+    ParaphraseRequest,
+    RecommendationRequest,
+    TempActionableStepsRequest
+)
 from app.main import app
 
 client = TestClient(app)
@@ -44,20 +48,21 @@ def test_recommendation():
     
     assert response.status_code == 200
 
-# def test_temp_actionable_steps():
-#     body = {
-#         "recognition_id": "12345",
-#         "content": "example content"
-#     }
+def test_temp_actionable_steps():
+    body = TempActionableStepsRequest(
+        recognition_id="12345",
+        content="친구와 저녁 먹기",
+        user_id="QFPp4doZbz5Idv8pJDmO",
+    )
     
-#     response = client.post(
-#         "/api/temp_actionable_steps",
-#         json=body,
-#     )
+    response = client.post(
+        "/api/temp_actionable_steps",
+        json=body.model_dump(),
+    )
     
-#     print(response.json())
+    print(response.json())
     
-#     assert response.status_code == 200
+    assert response.status_code == 200
 
 # def test_generate_userdata():
 #     body = {

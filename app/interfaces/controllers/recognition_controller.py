@@ -7,6 +7,7 @@ from app.domain.recognition.use_cases import RecognitionUseCase
 from app.domain.recognition.models import (
     ParaphraseRequest,
     RecommendationRequest,
+    TempActionableStepsRequest,
 )
 
 router = APIRouter()
@@ -22,10 +23,10 @@ def generate_recommended_context_tags(request: RecommendationRequest):
     return use_case.generate_recommended_context_tags(request)
 
 @router.post("/api/temp_actionable_steps")
-def generate_temp_actionable_steps(recognition_id: str, content: str):
-    return use_case.generate_temp_actionable_steps(recognition_id, content)
+def generate_temp_actionable_steps(request: TempActionableStepsRequest):
+    return use_case.generate_temp_actionable_steps(request)
 
-@router.post("/api/actionable_steps/save")
-def save_actionable_steps(temp_step_ids: list[str], content_id: str):
-    use_case.save_actionable_steps(temp_step_ids, content_id)
-    return {"message": "Actionable steps saved"}
+# @router.post("/api/actionable_steps/save")
+# def save_actionable_steps(temp_step_ids: list[str], content_id: str):
+#     use_case.save_actionable_steps(temp_step_ids, content_id)
+#     return {"message": "Actionable steps saved"}

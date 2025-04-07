@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from app.infrastructure.LLMs.base_LLM_processoor import BaseLLMProcessor
-from app.domain.recognition.models import ParaphraseResponse, RecommendationResponse
+from app.domain.recognition.models import ParaphraseResponse, RecommendationResponse, TempActionableStepsResponse
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import BaseOutputParser, PydanticOutputParser
@@ -76,6 +76,44 @@ class RecognitionGenerator(BaseLLMProcessor):
         })
         
         return response
+    
+    def generate_temp_actionable_steps(self, user_bio: str, user_tags: str, content: str):
+        """사용자가 입력한 할 일을 actionable_steps로 분해 및 구체화"""
+        
+        prompt = """
+        다음은 사용자가 입력한 해야 할 일입니다. 이 할 일에 대한 구체적인 스텝을 주어진 숫자에 맞추어 작성하세요.
+        단, 생성할 스텝의 수가 0으로 주어진다면 스텝을 생성하지 않고, 태스크만 생성합니다.
+        스텝에만 존재하는 필드를 태스크에 생성하지 않도록 주의하세요.
+
+        Context는 사용자의 하루에 비추어 해당하는 할 일을 수행하는 맥락을 나타냅니다.
+        시간 태그에는 휴일 여부, 요일, 하루 중의 시간대 등의 정보를 포함하세요.
+        공간 태그에는 사용자의 위치, 활동하는 장소 등의 정보를 포함하세요.
+        기타 태그에는 시간과 공간 태그에 포함되지 않지만 할 일의 맥락과 상황을 검색하기에 좋은 정보를 포함하세요.
+        각각의 태그는 되도록이면 사용자의 인적 정보에 포함되어 있는 태그 정보를 활용하여 작성하세요.
+        
+        스텝을 생성할 때에는, 각 스텝을 수행하는 데에 필요한 노력과 시간을 고려하세요.
+
+        사용자의 인적 정보: {bio}
+        사용자의 하루 일과: {tags}
+        사용자가 입력한 할 일: {content}
+        지침: {format_instruction}
+        """
+        
+        prompt_template = self._create_prompt_template(prompt)
+        output_parser = PydanticOutputParser(pydantic_object=TempActionableStepsResponse)
+        format_instruction = self._get_format_instructions(output_parser)
+        
+        chain = prompt_template | self.llm | output_parser
+
+        response = chain.invoke({
+            "bio": user_bio,
+            "tags": user_tags,
+            "content": content,
+            "format_instruction": format_instruction
+        })
+        
+        return response
+        
 
     def _create_prompt_template(self, prompt: str):
         """프롬프트 템플릿 생성"""

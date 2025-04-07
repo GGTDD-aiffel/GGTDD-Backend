@@ -22,7 +22,6 @@ class RecommendationRequest(BaseModel):
     recognition_id: str = Field(..., description="인식 아이템 ID")
     content: str = Field(..., description="추천할 원본 텍스트 내용")
     user_id: str = Field(..., description="사용자 ID")
-    user_context: str = Field(..., description="사용자 컨텍스트 문자열")
 
 class RecommendationResponse(BaseModel):
     recognition_id: str = Field(..., description="인식 아이템 ID")
@@ -30,3 +29,19 @@ class RecommendationResponse(BaseModel):
     location_tags_ID: List[str] = Field(default_factory=list, description="추천된 위치 태그 목록")
     time_tags_ID: List[str] = Field(default_factory=list, description="추천된 시간 태그 목록")
     other_tags_ID: List[str] = Field(default_factory=list, description="추천된 기타 태그 목록")
+    
+class TempActionableStepsRequest(BaseModel):
+    recognition_id: str = Field(..., description="인식 아이템 ID")
+    content: str = Field(..., description="추천할 원본 텍스트 내용")
+    user_id: str = Field(..., description="사용자 ID")
+
+class TempActionableStep(BaseModel):
+    context: str = Field(..., description="추천된 컨텍스트")
+    content: str = Field(..., description="추천된 내용")
+    location_tags_ID: List[str] = Field(default_factory=list, description="추천된 위치 태그 목록")
+    time_tags_ID: List[str] = Field(default_factory=list, description="추천된 시간 태그 목록")
+    other_tags_ID: List[str] = Field(default_factory=list, description="추천된 기타 태그 목록")
+
+class TempActionableStepsResponse(BaseModel):
+    recognition_id: str = Field(..., description="인식 아이템 ID")
+    actionable_steps: List[TempActionableStep] = Field(default_factory=list, description="추천된 액션 스텝 목록")
