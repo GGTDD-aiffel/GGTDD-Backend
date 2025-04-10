@@ -1,15 +1,16 @@
 from app.domain.inbox.models import InboxResponse, Inbox, PaginationMeta
 from app.domain.common.models import BaseResponse
-from app.infrastructure.firebase_repo import FirebaseRepository
 import logging
 import json
+
+from app.infrastructure.repository.inbox_repository import InboxRepository
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class InboxUseCase:
-    def __init__(self, repo: FirebaseRepository):
+    def __init__(self, repo: InboxRepository):
         self.repo = repo
 
     def get_inboxes(self, user_id: str, page: int, limit: int, is_sent_to_recognition: bool) -> BaseResponse[InboxResponse]:

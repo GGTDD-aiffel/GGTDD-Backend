@@ -1,6 +1,15 @@
 from datetime import datetime
 
 def convert_firebase_timestamp(firebase_datetime):
+    """
+    Firebase에서 가져온 타임스탬프를 datetime 객체로 변환합니다.
+    
+    Args:
+        firebase_datetime: Firebase 타임스탬프, datetime 객체, 문자열 또는 None
+        
+    Returns:
+        datetime 객체 또는 None
+    """
     if firebase_datetime is None:
         return None
     
@@ -8,16 +17,41 @@ def convert_firebase_timestamp(firebase_datetime):
     if isinstance(firebase_datetime, datetime):
         return firebase_datetime
     
-    # DatetimeWithNanoseconds 변환
-    return datetime(
-        year=firebase_datetime.year,
-        month=firebase_datetime.month,
-        day=firebase_datetime.day,
-        hour=firebase_datetime.hour,
-        minute=firebase_datetime.minute,
-        second=firebase_datetime.second,
-        microsecond=firebase_datetime.microsecond
-    )
+    # 문자열인 경우 처리 (여러 형식 지원)
+    if isinstance(firebase_datetime, str):
+        try:
+            # ISO 형식 (YYYY-MM-DD)
+            return datetime.fromisoformat(firebase_datetime.replace('Z', '+00:00'))
+        except ValueError:
+            try:
+                # 일반적인 날짜 형식들
+                for format_str in ('%Y-%m-%d', '%Y/%m/%d', '%d-%m-%Y', '%d/%m/%Y', '%Y-%m-%dT%H:%M:%S'):
+                    try:
+                        return datetime.strptime(firebase_datetime, format_str)
+                    except ValueError:
+                        continue
+                
+                # 날짜 변환 실패
+                print(f"Warning: Could not parse date string '{firebase_datetime}'")
+                return None
+            except Exception as e:
+                print(f"Error parsing date string: {e}")
+                return None
+    
+    # DatetimeWithNanoseconds 변환 시도
+    try:
+        return datetime(
+            year=firebase_datetime.year,
+            month=firebase_datetime.month,
+            day=firebase_datetime.day,
+            hour=firebase_datetime.hour,
+            minute=firebase_datetime.minute,
+            second=firebase_datetime.second,
+            microsecond=firebase_datetime.microsecond
+        )
+    except AttributeError as e:
+        print(f"Error converting firebase timestamp: {e}, type: {type(firebase_datetime)}")
+        return None
 
 def convert_firebase_MBTI(mbti_str):
     """

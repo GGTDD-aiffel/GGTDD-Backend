@@ -9,7 +9,7 @@ class RecognitionGenerator(BaseLLMProcessor):
     def __init__(self, llm: ChatOpenAI):
         super().__init__(llm)
     
-    def generate_paraphrase(self, user_context: str, user_tags: str, content: str):
+    def generate_paraphrase(self, user_bio: str, user_contexts: str, user_tags: str, content: str):
         """인식된 내용을 바탕으로 패러프레이즈 생성"""
         
         prompt = """
@@ -23,7 +23,11 @@ class RecognitionGenerator(BaseLLMProcessor):
 
         사용자가 입력한 할 일: {content}
         사용자의 인적 정보: {bio}
-        사용자의 태그: {tags}
+        사용자의 맥락 (콤마로 구분): {contexts}
+        사용자의 태그 (콤마로 구분): {tags}
+        
+        아래 맥락과 태그는 콤마(,)로 구분된 목록으로 제공됩니다. 각 항목을 개별적으로 고려하여 사용자의 할 일을 더 정확하게 이해하세요.
+        만약 특정 맥락이나 태그가 사용자의 할 일과 관련이 있다면, 그 맥락과 태그를 활용하여 보다 구체적인 패러프레이즈를 생성하세요.
         지침: {format_instruction}
         """
         
@@ -35,31 +39,59 @@ class RecognitionGenerator(BaseLLMProcessor):
         
         response = chain.invoke({
             "content": content,
-            "bio": user_context,
+            "bio": user_bio,
+            "contexts": user_contexts,
             "tags": user_tags,
             "format_instruction": format_instruction
         })
         
         return response
     
-    def generate_context_tags(self, user_bio: str, user_tags: str, content: str):
-        """인식된 내용을 바탕으로 추천 태그 생성"""
+    def generate_context_tags(self, user_bio: str, formatted_contexts: str, formatted_tags: str, paraphrases_content: str, content: str) -> RecommendationResponse:
+        """인식된 내용을 바탕으로 추천 컨텍스트 ID와 태그 ID 목록을 생성합니다.
+        
+        Args:
+            user_bio: 사용자 바이오 정보 문자열
+            formatted_contexts: 'ID: 이름' 형식의 사용자 컨텍스트 문자열
+            formatted_tags: 'ID: 이름(타입)' 형식의 사용자 태그 문자열 (예: id1: 집(space), id2: 주말(time), id3: 프로젝트(other))
+            paraphrases_content: 콤마로 구분된 패러프레이즈 문자열
+            content: 사용자가 입력한 원본 내용
+            
+        Returns:
+            추천된 컨텍스트 ID 1개와 태그 ID 목록을 포함하는 RecommendationResponse 모델
+        """
         
         prompt = """
-        다음은 사용자가 입력한 해야 할 일입니다. 이 할 일에 대해 부여할 수 있는 태그를 생성하세요.
+        다음 정보들을 바탕으로 사용자가 입력한 할 일과 가장 관련성이 높은 **컨텍스트 ID 1개**와 **태그 ID 여러 개**를 추천해주세요.
+        추천은 반드시 아래 제공된 사용자의 기존 컨텍스트 및 태그 목록 내에서만 이루어져야 합니다.
 
-        태그를 붙이는 목적은 할 일을 관리하기 위한 데이터베이스에 사용하기 위해서입니다.
-        각각의 할 일은 사용자의 하루를 나타내는 여러 장면을 담은 태그와 함께 저장되고, 사용자가 처한 맥락과 상황을 표현하는 태그에 맞춰 할 일을 추천합니다.
+        입력 정보:
+        1. 사용자가 입력한 원본 내용: {content}
+        2. 사용자의 의도를 파악하기 위해 생성된 패러프레이즈들 (콤마로 구분): {paraphrases}
+        3. 사용자 정보 (Bio): {bio}
+        4. 사용자가 이미 정의한 컨텍스트 목록 (형식: ID: 이름): {contexts}
+        5. 사용자가 이미 정의한 태그 목록 (형식: ID: 이름(타입)): {tags}
+           - 태그 타입 예시: space(장소 관련), time(시간 관련), other(기타) 등 (향후 다른 타입이 추가될 수 있음)
 
-        시간 태그에는 휴일 여부, 요일, 하루 중의 시간대 등의 정보를 포함하세요.
-        공간 태그에는 사용자의 위치, 활동하는 장소 등의 정보를 포함하세요.
-        기타 태그에는 시간과 공간 태그에 포함되지 않지만 할 일의 맥락과 상황을 검색하기에 좋은 정보를 포함하세요.
-        각각의 태그는 되도록이면 사용자의 인적 정보에 포함되어 있는 태그 정보를 활용하여 작성하세요.
+        출력 지침:
+        - **가장 중요:** 사용자의 기존 컨텍스트 목록({contexts}) 중에서 할 일과 가장 관련성이 높은 것의 **ID 1개를 반드시 선택하세요.** 관련성이 조금 낮더라도 가장 가능성 있는 ID 하나를 선택해야 합니다. `recommended_context_id` 필드는 null이 되어서는 안 됩니다.
         
-        사용자가 입력한 할 일: {content}
-        사용자의 인적 정보: {bio}
-        사용자의 태그: {tags}
-        지침: {format_instruction}
+        - **태그 추천 (매우 중요):** 사용자의 기존 태그 목록({tags}) 중에서 **최소 2개, 최대 5개**의 태그 ID를 선택하세요. 강한 관련성이 없더라도 약간이라도 관련된 태그는 모두 포함하세요. 
+        
+        - 태그 선택 시 다음을 고려하세요:
+          * 장소(location) 관련 태그 최소 1개
+          * 시간(time) 관련 태그 최소 1개
+          * 기타(other) 태그 중 관련 있는 것
+          * 직접적인 관련성 외에도 간접적인 연관성이 있는 태그도 포함하세요
+        
+        - 예를 들어, "도서관에서 책 읽기"라는 할 일의 경우:
+          * location 태그: "도서관", "학교" 등 장소 관련 태그 (포함 가능한 모든 관련 장소)
+          * time 태그: "오후", "주말", "자유시간" 등 가능한 시간 관련 태그
+          * other 태그: "공부", "취미", "독서" 등 활동과 관련된 태그
+        
+        - 반드시 아래 JSON 형식에 맞춰 ID만 포함하여 출력하세요:
+        
+        {format_instruction}
         """
         
         prompt_template = self._create_prompt_template(prompt)
@@ -70,33 +102,56 @@ class RecognitionGenerator(BaseLLMProcessor):
         
         response = chain.invoke({
             "content": content,
+            "paraphrases": paraphrases_content,
             "bio": user_bio,
-            "tags": user_tags,
+            "contexts": formatted_contexts,
+            "tags": formatted_tags,
             "format_instruction": format_instruction
         })
         
         return response
     
-    def generate_temp_actionable_steps(self, user_bio: str, user_tags: str, content: str):
-        """사용자가 입력한 할 일을 actionable_steps로 분해 및 구체화"""
+    def generate_temp_actionable_steps(self, user_bio: str, formatted_contexts: str, formatted_tags: str, content: str):
+        """사용자의 할 일을 바탕으로 실행 가능한 단계를 생성"""
         
         prompt = """
-        다음은 사용자가 입력한 해야 할 일입니다. 이 할 일에 대한 구체적인 스텝을 주어진 숫자에 맞추어 작성하세요.
-        단, 생성할 스텝의 수가 0으로 주어진다면 스텝을 생성하지 않고, 태스크만 생성합니다.
-        스텝에만 존재하는 필드를 태스크에 생성하지 않도록 주의하세요.
-
-        Context는 사용자의 하루에 비추어 해당하는 할 일을 수행하는 맥락을 나타냅니다.
-        시간 태그에는 휴일 여부, 요일, 하루 중의 시간대 등의 정보를 포함하세요.
-        공간 태그에는 사용자의 위치, 활동하는 장소 등의 정보를 포함하세요.
-        기타 태그에는 시간과 공간 태그에 포함되지 않지만 할 일의 맥락과 상황을 검색하기에 좋은 정보를 포함하세요.
-        각각의 태그는 되도록이면 사용자의 인적 정보에 포함되어 있는 태그 정보를 활용하여 작성하세요.
+        당신은 사용자가 입력한 할 일을 바탕으로 실행 가능한 단계(actionable steps)를 구체적으로 제시하는 역할을 맡고 있습니다.
         
-        스텝을 생성할 때에는, 각 스텝을 수행하는 데에 필요한 노력과 시간을 고려하세요.
-
-        사용자의 인적 정보: {bio}
-        사용자의 하루 일과: {tags}
-        사용자가 입력한 할 일: {content}
-        지침: {format_instruction}
+        사용자의 할 일: {content}
+        
+        사용자의 정보: {bio}
+        
+        사용자의 컨텍스트 목록(콤마로 구분): 
+        {contexts}
+        
+        사용자의 태그 목록(콤마로 구분): 
+        {tags}
+        
+        위 정보는 "ID: 이름" 또는 "ID: 이름(타입)" 형식으로 콤마(,)로 구분되어 있습니다.
+        각 항목의 ID를 참조하여 응답해야 합니다.
+        
+        할 일과 관련된 컨텍스트와 태그를 고려하여, 실행 가능한 구체적인 단계를 최소 2개에서 최대 5개까지 제시해주세요.
+        각 단계는 다음 요소를 포함해야 합니다:
+        
+        1. context: 해당 단계를 수행할 컨텍스트(장소나 상황)의 ID - 반드시 사용자 컨텍스트 목록에서 제공된 ID만 사용하세요.
+        
+        2. content: 구체적으로 수행할 행동에 대한 설명
+        
+        3. recommended_tag_ids: 해당 단계와 관련된 태그 ID 목록 - 반드시 제공된 태그 목록에서 ID만 선택하세요.
+        
+        태그 선택 시 다음을 고려하세요:
+        - 각 단계마다 최소 2개, 최대 5개의 태그 ID를 선택하세요.
+        - 다양한 타입(location, time, other)의 태그를 골고루 포함하세요.
+        - 관련성이 높지 않더라도 약간이라도 관련된 태그는 모두 포함하세요.
+        - 직접적인 관련성 외에도 간접적인 연관성이 있는 태그도 포함하세요.
+        
+        중요: 생성한 모든 단계에 대해 반드시 ID만 포함하여 출력하세요. 이름이나 설명을 ID 필드에 포함하지 마세요.
+        
+        예를 들어, 컨텍스트 목록에 "abc123: 집"이 있다면, context 필드에는 "abc123"만 포함해야 합니다.
+        태그 목록에 "xyz789: 저녁(time)", "def456: 주방(location)"이 있다면, recommended_tag_ids 필드에는 ["xyz789", "def456"]과 같이 ID만 포함해야 합니다.
+        
+        응답 형식:
+        {format_instruction}
         """
         
         prompt_template = self._create_prompt_template(prompt)
@@ -106,9 +161,10 @@ class RecognitionGenerator(BaseLLMProcessor):
         chain = prompt_template | self.llm | output_parser
 
         response = chain.invoke({
-            "bio": user_bio,
-            "tags": user_tags,
             "content": content,
+            "bio": user_bio,
+            "contexts": formatted_contexts,
+            "tags": formatted_tags,
             "format_instruction": format_instruction
         })
         
