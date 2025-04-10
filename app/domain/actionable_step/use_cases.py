@@ -33,15 +33,28 @@ class ActionableStepUseCase:
             raw_data = self.repo.get_actionable_steps(user_id, page, limit, context_names, tag_names)
             
             # 데이터 모델로 변환
-            steps = [ActionableStep(**item) for item in raw_data.get('data', [])]
-            meta = PaginationMeta(**raw_data.get('meta', {
-                'current_page': page,
-                'total_pages': 1,
-                'total_items': len(steps),
-                'limit': limit
-            }))
+            if isinstance(raw_data, dict):
+                steps = [ActionableStep(**item) for item in raw_data.get('data', [])]
+                meta = PaginationMeta(**raw_data.get('meta', {
+                    'current_page': page,
+                    'total_pages': 1,
+                    'total_items': len(steps),
+                    'limit': limit
+                }))
+            else:
+                # raw_data가 리스트인 경우
+                steps = [ActionableStep(**item) for item in raw_data]
+                meta = PaginationMeta(
+                    current_page=page,
+                    total_pages=1,
+                    total_items=len(steps),
+                    limit=limit
+                )
             
             response_data = ActionableStepResponse(data=steps, meta=meta)
+
+            for step in response_data.data:
+                print("step: ", step)
             
             return BaseResponse[ActionableStepResponse](
                 code=200,
@@ -79,14 +92,14 @@ class ActionableStepUseCase:
                 
             # 모든 미완료 항목 가져오기
             data = self.repo.get_actionable_steps(user_id, page=1, limit=100)
-            steps = [item['step_content'] for item in data.get('data', []) if not item['is_completed']]
+            steps = [item['step_content'] for item in data['data'] if not item['is_completed']]
             
             if steps:
                 recommended_steps = self.ai_service.recommend_actionable_steps(steps)
                 # 추천된 순서대로 데이터 정렬
                 result = []
                 for step in recommended_steps:
-                    for item in data.get('data', []):
+                    for item in data['data']:
                         if item['step_content'] == step:
                             result.append(ActionableStep(**item))
                 
@@ -134,11 +147,11 @@ class ActionableStepUseCase:
                 
             # 모든 미완료 항목 가져오기
             data = self.repo.get_actionable_steps(user_id, page=1, limit=100)
-            steps = [item['step_content'] for item in data.get('data', []) if not item['is_completed']]
+            steps = [item['step_content'] for item in data['data'] if not item['is_completed']]
             
             if steps:
                 recommended_step = self.ai_service.recommend_current_actionable_step(steps, current_time)
-                for item in data.get('data', []):
+                for item in data['data']:
                     if item['step_content'] == recommended_step:
                         return BaseResponse[Optional[ActionableStep]](
                             code=200,

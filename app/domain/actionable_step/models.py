@@ -7,9 +7,13 @@ class ActionableStep(BaseModel):
     content_id: str
     step_content: str
     is_completed: bool
-    review: str
+    review: Optional[str] = None
     created_at: str
     updated_at: Optional[str] = None
+    user_id: str
+
+    class Config:
+        populate_by_name = True
 
 class PaginationMeta(BaseModel):
     current_page: int

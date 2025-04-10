@@ -1,11 +1,16 @@
 from typing import List, Optional, Dict, Any
 from app.infrastructure.repository.base_repository import BaseRepository
+from app.infrastructure.repository.actionable_step_context_tag_repository import ActionableStepContextTagRepository
 from firebase_admin import firestore
 
 class ActionableStepRepository(BaseRepository):
     """
     액션 스텝 관련 데이터에 접근하는 레포지토리 클래스
     """
+    
+    def __init__(self):
+        super().__init__()
+        self.context_tag_repo = ActionableStepContextTagRepository()
     
     def create_actionable_step(self, step_data: Dict[str, Any]) -> str:
         """
@@ -41,92 +46,132 @@ class ActionableStepRepository(BaseRepository):
                             tag_names: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         조건에 맞는 액션 스텝 목록을 페이지네이션하여 조회합니다.
-        
-        Args:
-            user_id: 사용자 ID
-            page: 페이지 번호 (1부터 시작)
-            limit: 페이지당 항목 수
-            context_names: 필터링할 컨텍스트 이름 목록 (옵션)
-            tag_names: 필터링할 태그 이름 목록 (옵션)
-            
-        Returns:
-            액션 스텝 목록과 페이지네이션 메타 정보를 포함한 딕셔너리
         """
-        # 컨텍스트 ID 조회
-        user_context_ids = []
-        if context_names:
-            context_query = (self.db.collection('user_contexts')
-                            .where('user_id', '==', user_id)
-                            .where('context_name', 'in', context_names[:10]))
-            user_context_ids = [doc.id for doc in context_query.get()]
+        print("\n=== Repository Debug ===")
+        print(f"Input - user_id: {user_id}, page: {page}, limit: {limit}")
+        print(f"context_names: {context_names}")
+        print(f"tag_names: {tag_names}")
         
-        # 태그 ID 조회
-        user_tag_ids = []
-        if tag_names:
-            tag_query = (self.db.collection('user_tags')
-                        .where('user_id', '==', user_id)
-                        .where('tag_name', 'in', tag_names[:10]))
-            user_tag_ids = [doc.id for doc in tag_query.get()]
-        
-        # 액션 스텝-컨텍스트-태그 연결 정보로 액션 스텝 ID 조회
-        step_ids_query = self.db.collection('actionable_step_context_tags').where('user_id', '==', user_id)
-        
-        if user_context_ids and user_tag_ids:
-            step_ids_query = step_ids_query.where('user_context_id', 'in', user_context_ids).where('user_tag_id', 'in', user_tag_ids)
-        elif user_context_ids:
-            step_ids_query = step_ids_query.where('user_context_id', 'in', user_context_ids)
-        elif user_tag_ids:
-            step_ids_query = step_ids_query.where('user_tag_id', 'in', user_tag_ids)
-    
-        step_ids = list(set([doc.to_dict()['actionable_step_id'] for doc in step_ids_query.stream()]))
-
-        if not step_ids:
+        # context_names와 tag_names가 모두 None이면 일반 페이지네이션으로 처리
+        if context_names is None and tag_names is None:
+            print("No filtering required, proceeding with simple pagination")
+            steps_query = self.db.collection('actionable_steps').where('user_id', '==', user_id)
+            
+            # 전체 문서 수 확인
+            all_docs = list(steps_query.stream())
+            print(f"Total documents in collection: {len(all_docs)}")
+            print(f"First few documents: {[doc.id for doc in all_docs[:5]]}")
+            
+            total_count = len(all_docs)
+            print(f"Total steps found: {total_count}")
+            
+            # 페이지네이션 적용
+            steps_query = steps_query.limit(limit)
+            if page > 1:
+                prev_query = steps_query.limit((page - 1) * limit)
+                prev_docs = list(prev_query.stream())
+                print(f"Previous page documents count: {len(prev_docs)}")
+                last_doc = prev_docs[-1] if prev_docs else None
+                if last_doc:
+                    steps_query = steps_query.start_after(last_doc)
+            
+            # 실제 조회된 문서 확인
+            current_docs = list(steps_query.stream())
+            print(f"Current page documents count: {len(current_docs)}")
+            print(f"Current page document IDs: {[doc.id for doc in current_docs]}")
+            
+            steps_data = []
+            for doc in current_docs:
+                step_dict = doc.to_dict()
+                # 문서 ID를 actionable_step_id로 설정
+                step_dict['actionable_step_id'] = doc.id
+                print(f"Processing document {doc.id}: {step_dict}")
+                
+                # context_tags는 여기서 설정하지 않음
+                steps_data.append(self._convert_timestamp_to_iso(step_dict))
+            
+            total_pages = (total_count + limit - 1) // limit
+            
             return {
-                "data": [],
+                "data": steps_data,
                 "meta": {
                     "current_page": page,
-                    "total_pages": 0,
-                    "total_items": 0,
+                    "total_pages": total_pages,
+                    "total_items": total_count,
                     "limit": limit
                 }
             }
         
-        # 전체 아이템 수 조회
-        total_query = (self.db.collection('actionable_steps')
-                      .where('user_id', '==', user_id)
-                      .where('id', 'in', step_ids))
-        total_count = len(list(total_query.stream()))
+        # 필터링이 필요한 경우 기존 로직 수행
+        user_context_ids = None
+        if context_names:
+            print(f"Querying contexts for names: {context_names}")
+            context_query = (self.db.collection('user_contexts')
+                            .where('user_id', '==', user_id)
+                            .where('context_name', 'in', context_names))
+            context_docs = list(context_query.get())
+            if context_docs:
+                user_context_ids = [doc.id for doc in context_docs]
+            print(f"Found context IDs: {user_context_ids}")
         
-        # 액션 스텝 조회
-        steps_query = (self.db.collection('actionable_steps')
-                      .where('user_id', '==', user_id)
-                      .where('id', 'in', step_ids)
-                      .limit(limit))
-
-        # 페이지네이션 처리
+        user_tag_ids = None
+        if tag_names:
+            print(f"Querying tags for names: {tag_names}")
+            tag_query = (self.db.collection('user_tags')
+                        .where('user_id', '==', user_id)
+                        .where('tag_name', 'in', tag_names))
+            tag_docs = list(tag_query.get())
+            if tag_docs:
+                user_tag_ids = [doc.id for doc in tag_docs]
+            print(f"Found tag IDs: {user_tag_ids}")
+        
+        step_ids = None
+        if user_context_ids or user_tag_ids:
+            print(f"Querying step IDs with context_ids: {user_context_ids}, tag_ids: {user_tag_ids}")
+            step_ids = self.context_tag_repo.get_step_ids_by_context_and_tag(
+                user_id, user_context_ids, user_tag_ids
+            )
+            print(f"Found step IDs: {step_ids}")
+            if not step_ids:
+                print("No step IDs found, returning empty result")
+                return {
+                    "data": [],
+                    "meta": {
+                        "current_page": page,
+                        "total_pages": 0,
+                        "total_items": 0,
+                        "limit": limit
+                    }
+                }
+        
+        steps_query = self.db.collection('actionable_steps').where('user_id', '==', user_id)
+        
+        if step_ids:
+            print(f"Filtering steps by IDs: {step_ids}")
+            steps_query = steps_query.where('id', 'in', step_ids)
+        
+        total_count = len(list(steps_query.stream()))
+        print(f"Total steps found: {total_count}")
+        
+        steps_query = steps_query.limit(limit)
         if page > 1:
             prev_query = steps_query.limit((page - 1) * limit)
             last_doc = list(prev_query.stream())[-1] if list(prev_query.stream()) else None
             if last_doc:
                 steps_query = steps_query.start_after(last_doc)
-
-        # 결과 가공
+        
         steps_data = []
         for doc in steps_query.stream():
             step_dict = doc.to_dict()
-            step_dict['id'] = doc.id
-
-            # 관련 컨텍스트, 태그 정보 조회
-            context_tags_query = (self.db.collection('actionable_step_context_tags')
-                                 .where('actionable_step_id', '==', doc.id)
-                                 .where('user_id', '==', user_id))
-            context_tags = [tag.to_dict() for tag in context_tags_query.stream()]
-
-            step_dict['context_tags'] = context_tags
-            steps_data.append(self._convert_timestamp_to_iso(step_dict))
+            step_dict['actionable_step_id'] = doc.id
+            print(f"Processing document {doc.id}: {step_dict}")
             
-        # 페이지네이션 정보
-        total_pages = (total_count + limit - 1) // limit  # 올림 나눗셈
+            steps_data.append(self._convert_timestamp_to_iso(step_dict))
+        
+        print(f"Final steps data count: {len(steps_data)}")
+        print("=== End Repository Debug ===\n")
+        
+        total_pages = (total_count + limit - 1) // limit
         
         return {
             "data": steps_data,
