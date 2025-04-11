@@ -42,8 +42,8 @@ class ActionableStepRepository(BaseRepository):
         return self._doc_to_dict(doc)
     
     def get_actionable_steps(self, user_id: str, page: int, limit: int, 
-                            context_names: Optional[List[str]] = None, 
-                            tag_names: Optional[List[str]] = None) -> Dict[str, Any]:
+                         context_names: Optional[List[str]] = None, 
+                         tag_names: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         조건에 맞는 액션 스텝 목록을 페이지네이션하여 조회합니다.
         """
@@ -52,12 +52,10 @@ class ActionableStepRepository(BaseRepository):
         print(f"context_names: {context_names}")
         print(f"tag_names: {tag_names}")
         
-        # context_names와 tag_names가 모두 None이면 일반 페이지네이션으로 처리
         if context_names is None and tag_names is None:
             print("No filtering required, proceeding with simple pagination")
-            steps_query = self.db.collection('actionable_steps').where('user_id', '==', user_id)
+            steps_query = self.db.collection('actionable_steps').where('user_id', '==', user_id).where('is_completed', '==', False).order_by('created_at', direction=firestore.Query.ASCENDING)
             
-            # 전체 문서 수 확인
             all_docs = list(steps_query.stream())
             print(f"Total documents in collection: {len(all_docs)}")
             print(f"First few documents: {[doc.id for doc in all_docs[:5]]}")
@@ -65,7 +63,6 @@ class ActionableStepRepository(BaseRepository):
             total_count = len(all_docs)
             print(f"Total steps found: {total_count}")
             
-            # 페이지네이션 적용
             steps_query = steps_query.limit(limit)
             if page > 1:
                 prev_query = steps_query.limit((page - 1) * limit)
@@ -75,19 +72,17 @@ class ActionableStepRepository(BaseRepository):
                 if last_doc:
                     steps_query = steps_query.start_after(last_doc)
             
-            # 실제 조회된 문서 확인
             current_docs = list(steps_query.stream())
+            print(f"Filtered documents (is_completed == False): {[doc.id for doc in current_docs]}")
             print(f"Current page documents count: {len(current_docs)}")
             print(f"Current page document IDs: {[doc.id for doc in current_docs]}")
             
             steps_data = []
             for doc in current_docs:
                 step_dict = doc.to_dict()
-                # 문서 ID를 actionable_step_id로 설정
                 step_dict['actionable_step_id'] = doc.id
                 print(f"Processing document {doc.id}: {step_dict}")
                 
-                # context_tags는 여기서 설정하지 않음
                 steps_data.append(self._convert_timestamp_to_iso(step_dict))
             
             total_pages = (total_count + limit - 1) // limit
@@ -102,7 +97,6 @@ class ActionableStepRepository(BaseRepository):
                 }
             }
         
-        # 필터링이 필요한 경우 기존 로직 수행
         user_context_ids = None
         if context_names:
             print(f"Querying contexts for names: {context_names}")
@@ -129,7 +123,7 @@ class ActionableStepRepository(BaseRepository):
         if user_context_ids or user_tag_ids:
             print(f"Querying step IDs with context_ids: {user_context_ids}, tag_ids: {user_tag_ids}")
             step_ids = self.context_tag_repo.get_step_ids_by_context_and_tag(
-                user_id, user_context_ids, user_tag_ids
+                user_context_ids, user_tag_ids
             )
             print(f"Found step IDs: {step_ids}")
             if not step_ids:
@@ -144,29 +138,27 @@ class ActionableStepRepository(BaseRepository):
                     }
                 }
         
-        steps_query = self.db.collection('actionable_steps').where('user_id', '==', user_id)
-        
-        if step_ids:
-            print(f"Filtering steps by IDs: {step_ids}")
-            steps_query = steps_query.where('id', 'in', step_ids)
-        
-        total_count = len(list(steps_query.stream()))
-        print(f"Total steps found: {total_count}")
-        
-        steps_query = steps_query.limit(limit)
-        if page > 1:
-            prev_query = steps_query.limit((page - 1) * limit)
-            last_doc = list(prev_query.stream())[-1] if list(prev_query.stream()) else None
-            if last_doc:
-                steps_query = steps_query.start_after(last_doc)
-        
         steps_data = []
-        for doc in steps_query.stream():
-            step_dict = doc.to_dict()
-            step_dict['actionable_step_id'] = doc.id
-            print(f"Processing document {doc.id}: {step_dict}")
+        if step_ids:
+            print(f"Filtering steps by document IDs: {step_ids}")
+            for step_id in step_ids:
+                doc_ref = self.db.collection('actionable_steps').document(step_id)
+                doc = doc_ref.get()
+                if doc.exists and doc.to_dict().get('user_id') == user_id:
+                    step_dict = doc.to_dict()
+                    step_dict['actionable_step_id'] = doc.id
+                    steps_data.append(self._convert_timestamp_to_iso(step_dict))
+                    print(f"Processing document {doc.id}: {step_dict}")
             
-            steps_data.append(self._convert_timestamp_to_iso(step_dict))
+            total_count = len(steps_data)
+            print(f"Total steps found: {total_count}")
+            
+            steps_data = steps_data[(page-1)*limit : page*limit]
+        else:
+            steps_query = self.db.collection('actionable_steps').where('user_id', '==', user_id).where('is_completed', '==', False).order_by('created_at', direction=firestore.Query.ASCENDING).limit(limit)
+            steps_data = [self._convert_timestamp_to_iso(doc.to_dict()) for doc in steps_query.stream()]
+            total_count = len(steps_data)
+            print(f"Total steps found: {total_count}")
         
         print(f"Final steps data count: {len(steps_data)}")
         print("=== End Repository Debug ===\n")
