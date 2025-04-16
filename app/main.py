@@ -7,11 +7,16 @@ from fastapi import FastAPI
 if not firebase_admin._apps:
     firebase_admin.initialize_app(credentials.Certificate("/secrets/serviceAccountKey.json"))
     
-from app.interfaces.controllers import actionable_step_controller, inbox_controller, recognition_controller
+from app.interfaces.controllers import (
+    actionable_step_controller,
+    inbox_controller,
+    recognition_controller,
+    user_controller)
 
 app = FastAPI()
 
 app.include_router(inbox_controller.router)
+app.include_router(user_controller.router)
 app.include_router(recognition_controller.router)
 app.include_router(actionable_step_controller.router)
 
@@ -25,3 +30,4 @@ async def add_utf8_content_type(request, call_next):
     response = await call_next(request)
     response.headers["Content-Type"] = "application/json; charset=utf-8"
     return response
+

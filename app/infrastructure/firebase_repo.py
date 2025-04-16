@@ -1,88 +1,53 @@
-import firebase_admin
-from firebase_admin import credentials, firestore
-from google.type import datetime_pb2
-
-# firebase_admin.initialize_app(credentials.Certificate('/app/env/firebase/serviceAccountKey.json'))
-
-# Cloud Run에서 마운트된 파일 경로 사용
-# FIRESTORE_KEY_PATH = "/secrets/serviceAccountKey.json"
-# firebase_admin.initialize_app(credentials.Certificate(FIRESTORE_KEY_PATH))
-
-"""
-gcloud run deploy fastapi-firestore \
-    --image gcr.io/[PROJECT-ID]/fastapi-firestore:latest \
-    --platform managed \
-    --region us-central1 \
-    --allow-unauthenticated \
-    --set-secrets "/secrets/serviceAccountKey.json=firebase-service-account:latest"
-"""
+from typing import List, Optional
+from firebase_admin import firestore
 
 class FirebaseRepository:
     def __init__(self):
         self.db = firestore.client()
 
-    # inbox
-    def get_inboxes(self, user_id: str, page: int, limit: int) -> dict:
-        query = (self.db.collection('inbox')
-                .where('user_id', '==', user_id)
-                .order_by('created_at', direction=firestore.Query.ASCENDING)
-                .limit(limit)
-                .offset((page - 1) * limit))
-        docs = query.get()
-        data = [
-            {
-                "content_id": doc.id,
-                **{k: v.isoformat() if hasattr(v, 'isoformat') else v for k, v in doc.to_dict().items()}
-            } for doc in docs
-        ]
-
-        total_query = self.db.collection('inbox').where('user_id', '==', user_id)
-        total_docs = total_query.get()
-        total_items = len(total_docs)
-        total_pages = (total_items + limit - 1) // limit
-
-        return {
-            "data": data,
-            "meta": {
-                "current_page": page,
-                "total_pages": total_pages,
-                "total_items": total_items,
-                "limit": limit
-            }
-        }
-    
-    def update_inbox(self, content_id: str, data: dict):
-        self.db.collection('inbox').document(content_id).update(data)
-
-    # recognitions
-    def create_recognition(self, recognition_data: dict):
-        self.db.collection('recognitions').add(recognition_data)
-
-    # paraphrases
-    def create_paraphrase(self, paraphrase_data: dict):
-        self.db.collection('paraphrases').add(paraphrase_data)
-
-    # recommended_context_tags
-    def create_recommendation(self, recommendation_data: dict):
-        self.db.collection('recommended_context_tags').add(recommendation_data)
-
-    # temp_actionable_steps
-    def create_temp_actionable_step(self, temp_step_data: dict):
-        self.db.collection('temp_actionable_steps').add(temp_step_data)
-
-    def get_temp_actionable_step(self, temp_id: str) -> dict:
-        return self.db.collection('temp_actionable_steps').document(temp_id).get().to_dict()
-
-    # actionable_steps
     def create_actionable_step(self, step_data: dict):
         self.db.collection('actionable_steps').add(step_data)
 
-    def get_actionable_steps(self, user_id: str, page: int, limit: int) -> list[dict]:
-        inbox_query = self.db.collection('inbox').where('user_id', '==', user_id)
-        content_ids = [doc.id for doc in inbox_query.get()]
-        query = (self.db.collection('actionable_steps')
-                .where('content_id', 'in', content_ids)
-                .order_by('created_at')
-                .limit(limit)
-                .offset((page - 1) * limit))
-        return [doc.to_dict() for doc in query.get()]
+    def get_actionable_steps(self, user_id: str, page: int, limit: int, context_names: Optional[List[str]] = None, tag_names: Optional[List[str]] = None) -> list[dict]:
+        user_context_ids = []
+        if context_names:
+            context_query = self.db.collection('user_contexts').where('user_id', '==', user_id).where('context_name', 'in', context_names[:10])
+            user_context_ids = [doc.id for doc in context_query.get()]
+        
+        user_tag_ids = []
+        if tag_names:
+            tag_query = self.db.collection('user_tags').where('user_id' '==', user_id).where('tag_name', 'in', tag_names[:10])
+            user_tag_ids = [doc.id for doc in tag_query.get()]
+        
+        step_ids_query = self.db.collection('actionable_step_context_tags').where('user_id', '==', user_id)
+        if user_context_ids and user_tag_ids:
+            step_ids_query = step_ids_query.where('user_context_id', 'in', user_context_ids).where('user_tag_id', 'in', user_tag_ids)
+        elif user_context_ids:
+            step_ids_query = step_ids_query.where('user_context_id', 'in', user_context_ids)
+        elif user_tag_ids:
+            step_ids_query = step_ids_query.where('user_tag_id', 'in', user_tag_ids)
+    
+        step_ids = list(set([doc.to_dict()['actionable_step_id'] for doc in step_ids_query.stream()]))
+
+        if not step_ids:
+            return []
+        
+        steps_query = self.db.collection('actionable_steps').where('user_id', '==', user_id).where('id', 'in', step_ids)
+        steps_query = steps_query.order_by('created_at').limit(limit)
+
+        if page > 1:
+            prev_query = steps_query.limit((page - 1) * limit)
+            last_doc = list(prev_query.stream())[-1]
+            steps_query = steps_query.start_after(last_doc)
+
+        steps_data = []
+        for doc in steps_query.stream():
+            step_dict = doc.to_dict()
+
+            context_tags_query = self.db.collection('actionable_step_context_tags').where('actionable_step_id', '==', doc.id).where('user_id', '==', user_id)
+            context_tags = [tag.to_dict() for tag in context_tags_query.stream()]
+
+            step_dict['context_tags'] = context_tags
+            steps_data.append(step_dict)
+
+        return steps_data

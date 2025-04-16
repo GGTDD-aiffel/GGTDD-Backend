@@ -1,8 +1,29 @@
-fastapi==0.95.0
-uvicorn==0.20.0
-pydantic==1.10.7
+# 핵심 패키지
+fastapi>=0.110.0
+uvicorn>=0.20.0
 firebase-admin==6.1.0
-openai==0.27.0
+pydantic==2.10.6
+pydantic-settings==2.8.1
+
+# 서버 관련
 functions-framework==3.2.0
 gunicorn==20.1.0
-python-dotenv
+
+# HTTP 클라이언트
+aiohttp==3.11.13
+httpx==0.28.1
+
+# 유틸리티
+python-dotenv==1.0.1
+python-dateutil
+PyYAML==6.0.2
+requests==2.32.3
+
+# 데이터 처리
+numpy==2.0.2
+
+# LangChain 관련
+langchain==0.3.20
+langchain-core==0.3.41
+langchain-community==0.3.19
+langchain-openai==0.3.7
